@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SAE PISAN — Dashboard Panitia</title>
+  <meta name="description" content="SAE PISAN — Smart Attendance Event. Presensi Integratif, Sistematis, Akuntabel, Nirkertas." />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============================ SIDEBAR ============================ -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="./icons/icon.svg" alt="SAE PISAN" />
+        <div><div class="bt">SAE PISAN</div><div class="bs">Smart Attendance Event</div></div>
+      </div>
+      <button class="navlink active" data-view="dashboard"><span class="i">🏠</span> Dashboard</button>
+      <button class="navlink" data-view="event"><span class="i">🗓️</span> Event</button>
+      <button class="navlink" data-view="peserta"><span class="i">👥</span> Peserta</button>
+      <a class="navlink" href="./checkin.html"><span class="i">📷</span> Check-in</a>
+      <button class="navlink" data-view="laporan"><span class="i">📑</span> Laporan</button>
+      <button class="navlink" data-view="pengaturan"><span class="i">⚙️</span> Pengaturan</button>
+      <div class="quote">“Kehadiran terdata, integritas terjaga — <b>sae pisan.</b>”</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <img src="./icons/icon.svg" alt="" />
+        <div><div class="t">SAE PISAN</div><div class="s" id="topSub">Dashboard</div></div>
+      </header>
+
+      <!-- =========================== DASHBOARD =========================== -->
+      <section id="v-dashboard">
+        <div class="hero">
+          <h1>SAE PISAN</h1>
+          <div class="h-sub">Smart Attendance Event</div>
+          <div class="h-desc">Presensi Integratif, Sistematis, Akuntabel, Nirkertas</div>
+          <div class="h-quote">“Kehadiran terdata, integritas terjaga — sae pisan.”</div>
+          <img class="h-art" src="./icons/icon.svg" alt="" />
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="ic b">👥</div><div><div class="lbl">Total Event</div><div class="num" id="sEvent">0</div><div class="sub">Event terdaftar</div></div></div>
+          <div class="stat"><div class="ic g">🧑‍🤝‍🧑</div><div><div class="lbl">Total Peserta</div><div class="num" id="sPeserta">0</div><div class="sub">Peserta terdaftar</div></div></div>
+          <div class="stat"><div class="ic a">⏱️</div><div><div class="lbl">Kehadiran Hari Ini</div><div class="num" id="sHadir">0</div><div class="sub" id="sHadirPct">—</div></div></div>
+          <div class="stat"><div class="ic p">🧾</div><div><div class="lbl">Check-in Hari Ini</div><div class="num" id="sCheckin">0</div><div class="sub" id="sCheckinLast">—</div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h2>Grafik Kehadiran</h2><span class="chip gray">7 Hari Terakhir</span></div>
+            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Status Kehadiran</h2></div>
+            <div class="donut-wrap">
+              <div class="chart-wrap" style="height:150px"><canvas id="donutChart"></canvas></div>
+              <div class="legend" id="donutLegend"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2 even">
+          <div class="card">
+            <div class="card-head"><h2>Event Terbaru</h2><button class="btn ghost sm" data-goto="event">Lihat Semua</button></div>
+            <div id="recentEvents"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Aktivitas Terbaru</h2></div>
+            <div class="feed" id="recentActivity"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================= EVENT ============================ -->
+      <section id="v-event" hidden>
+        <div class="section-title">Buat Event Baru (Undangan)</div>
+        <div class="card">
+          <form id="eventForm">
+            <div class="field">
+              <label>Unggah PDF Undangan <span class="req">*</span></label>
+              <input name="pdfFile" id="pdfFile" type="file" accept="application/pdf" required />
+              <div id="pdfStatus" class="banner info" style="margin-top:8px">📄 Unggah PDF undangan — Nomor Surat, Nama, Tanggal, Waktu, dan Lokasi akan terisi otomatis. Periksa &amp; sesuaikan bila perlu.</div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Nomor Surat</label><input name="nomorSurat" placeholder="123/KPU-JBR/VI/2026" /></div>
+              <div class="field"><label>Jenis</label>
+                <select name="jenis"><option>Rapat</option><option>Rakor</option><option>Bimtek</option><option>Sosialisasi</option><option>FGD</option><option>Workshop</option><option>Pelatihan</option></select>
+              </div>
+            </div>
+            <div class="field"><label>Nama Event <span class="req">*</span></label><input name="nama" required placeholder="Rapat Koordinasi Evaluasi Pemilu" /></div>
+            <div class="row">
+              <div class="field"><label>Tanggal</label><input name="tanggal" type="date" /></div>
+              <div class="field"><label>Waktu</label><input name="waktu" type="time" /></div>
+            </div>
+            <div class="field"><label>Lokasi</label><input name="lokasi" placeholder="Hotel Horison Bandung" /></div>
+            <div class="field"><label>Link PDF Undangan (opsional, untuk lintas-perangkat)</label><input name="pdfUrl" type="url" placeholder="https://…" /></div>
+            <div class="checkbox" style="margin:6px 0 12px">
+              <input type="checkbox" name="gpsRequired" id="gpsReq" /><label for="gpsReq">Aktifkan validasi GPS (anti titip absen)</label>
+            </div>
+            <div id="gpsFields" class="hide">
+              <div class="row">
+                <div class="field"><label>Latitude</label><input name="lat" id="latIn" inputmode="decimal" placeholder="-6.9147" /></div>
+                <div class="field"><label>Longitude</label><input name="lng" id="lngIn" inputmode="decimal" placeholder="107.6098" /></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Radius (m)</label><input name="radius" type="number" value="100" min="10" /></div>
+                <div class="field" style="display:flex;align-items:flex-end"><button type="button" class="btn ghost block" id="useLoc">📍 Pakai lokasi saya</button></div>
+              </div>
+            </div>
+            <button class="btn block lg" type="submit">＋ Buat Event</button>
+          </form>
+        </div>
+        <div class="section-title">Event Tersimpan</div>
+        <div class="card" id="eventList"></div>
+        <div class="card hide" id="eventInfoCard"><div id="eventInfo"></div></div>
+      </section>
+
+      <!-- ============================ PESERTA =========================== -->
+      <section id="v-peserta" hidden>
+        <div class="card">
+          <div class="field" style="margin:0"><label>Event aktif</label><select id="selPeserta"></select></div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><div class="ic b">📨</div><div><div class="lbl">Konfirmasi</div><div class="num" id="pKonf">0</div></div></div>
+          <div class="stat"><div class="ic g">✅</div><div><div class="lbl">Hadir</div><div class="num" id="pHadir">0</div></div></div>
+          <div class="stat"><div class="ic a">⏳</div><div><div class="lbl">Belum hadir</div><div class="num" id="pBelum">0</div></div></div>
+          <div class="stat"><div class="ic p">🚫</div><div><div class="lbl">Tidak hadir</div><div class="num" id="pTidak">0</div></div></div>
+        </div>
+        <div class="card">
+          <div class="btn-row" style="margin-bottom:12px">
+            <button class="btn green sm" id="exCsv">⬇️ CSV</button>
+            <button class="btn green sm" id="exXlsx">⬇️ Excel</button>
+            <button class="btn ghost sm" id="exPdf">🖨️ PDF / Cetak</button>
+            <button class="btn ghost sm" id="refreshBtn">🔄 Muat ulang</button>
+          </div>
+          <div class="table-wrap" id="partTable"></div>
+        </div>
+      </section>
+
+      <!-- ============================ LAPORAN ========================== -->
+      <section id="v-laporan" hidden>
+        <div class="card">
+          <div class="field" style="margin:0"><label>Event aktif</label><select id="selLaporan"></select></div>
+        </div>
+        <div class="card">
+          <h2>Laporan Singkat &amp; Berbagi</h2>
+          <p class="hint">Bagikan materi &amp; notulensi ke peserta, dan simpan ringkasan kegiatan.</p>
+          <div class="field"><label>Laporan Singkat Kegiatan</label><textarea id="laporan" rows="4" placeholder="Ringkasan pelaksanaan: pembukaan, pembahasan utama, hasil/kesimpulan, tindak lanjut…"></textarea></div>
+          <div class="row">
+            <div class="field"><label>Link Materi Kegiatan</label><input id="materiUrl" type="url" placeholder="https://… (Drive/Slide)" /></div>
+            <div class="field"><label>Link Notulensi</label><input id="notulensiUrl" type="url" placeholder="https://… (Doc/Drive)" /></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn sm" id="saveLaporan">💾 Simpan</button>
+            <button class="btn green sm" id="shareWa">📲 Bagikan ke Peserta (WA)</button>
+            <button class="btn ghost sm" id="copyShare">📋 Salin Pesan</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>📷 Dokumentasi Foto</h2>
+          <p class="hint">Foto kegiatan (otomatis dikompres) — disertakan pada dokumen pertanggungjawaban.</p>
+          <div class="field" style="margin-bottom:10px"><input id="photoInput" type="file" accept="image/*" multiple capture="environment" /></div>
+          <div id="photoGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+        </div>
+        <div class="card">
+          <h2>📑 Dokumen Pertanggungjawaban (LPJ)</h2>
+          <p class="hint">Otomatis berisi data event, rekap kehadiran, laporan, link materi/notulensi, &amp; dokumentasi foto. Format Word (.doc), siap diedit &amp; ditandatangani.</p>
+          <div class="btn-row"><button class="btn sm" id="dlLpj">⬇️ Unduh LPJ (.doc)</button><button class="btn ghost sm" id="printLpj">🖨️ Cetak / PDF</button></div>
+        </div>
+      </section>
+
+      <!-- ========================== PENGATURAN ========================= -->
+      <section id="v-pengaturan" hidden>
+        <div class="section-title">Pengaturan Backend</div>
+        <div class="card">
+          <p class="hint">Hubungkan ke Google Sheets (Apps Script) agar data tersinkron antar perangkat. Kosongkan untuk <b>mode demo</b> (data di perangkat ini saja).</p>
+          <div class="field"><label>URL Apps Script Web App</label><input id="apiUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" /></div>
+          <div class="field"><label>Nama Panitia / Penyelenggara</label><input id="panitia" placeholder="Sekretariat KPU Jawa Barat" /></div>
+          <div class="btn-row"><button class="btn" id="saveCfg">💾 Simpan</button><button class="btn ghost" id="testCfg">🔌 Tes Koneksi</button></div>
+          <div class="banner info mt" id="modeBanner"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="tabbar">
+    <button class="active" data-view="dashboard"><span class="i">🏠</span>Dashboard</button>
+    <button data-view="event"><span class="i">🗓️</span>Event</button>
+    <a href="./checkin.html"><span class="i">📷</span>Scan</a>
+    <button data-view="laporan"><span class="i">📑</span>Laporan</button>
+    <button data-view="pengaturan"><span class="i">⚙️</span>Setelan</button>
+  </nav>
+
+  <div id="modal" class="modal hide">
+    <div class="card" style="max-width:380px;width:100%;margin:0">
+      <div id="modalBody"></div>
+      <button class="btn ghost block mt" id="modalClose">Tutup</button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+  <script src="./qr.js"></script>
+  <script>
+  (function () {
+    SAE.registerSW();
+    const $ = (id) => document.getElementById(id);
+    const VIEWS = ['dashboard', 'event', 'peserta', 'laporan', 'pengaturan'];
+    let events = [], current = null, parts = [], lineChart = null, donutChart = null, pdfFileSelected = null;
+
+    /* ----------------------------- routing ---------------------------- */
+    function show(view) {
+      VIEWS.forEach((v) => { const el = $('v-' + v); if (el) el.hidden = (v !== view); });
+      document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+      $('topSub').textContent = ({ dashboard: 'Dashboard', event: 'Event', peserta: 'Peserta', laporan: 'Laporan', pengaturan: 'Pengaturan' })[view] || '';
+      if (view === 'dashboard') loadDashboard();
+      if (view === 'peserta') { fillSelect($('selPeserta')); loadPeserta($('selPeserta').value); }
+      if (view === 'laporan') { fillSelect($('selLaporan')); loadLaporan($('selLaporan').value); }
+      window.scrollTo(0, 0);
+    }
+    document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => show(b.dataset.view)));
+    document.querySelectorAll('[data-goto]').forEach((b) => b.addEventListener('click', () => show(b.dataset.goto)));
+
+    /* --------------------------- settings ----------------------------- */
+    $('apiUrl').value = SAE.getApiUrl(); $('panitia').value = SAE.getPanitia(); renderMode();
+    $('saveCfg').addEventListener('click', () => { SAE.setApiUrl($('apiUrl').value); SAE.setPanitia($('panitia').value); SAE.toast('Tersimpan.', 'success'); renderMode(); init(); });
+    $('testCfg').addEventListener('click', async () => {
+      if (!$('apiUrl').value.trim()) return SAE.toast('Isi URL backend dulu.', 'error');
+      const old = SAE.getApiUrl(); SAE.setApiUrl($('apiUrl').value);
+      try { await SAE.listEvents(); SAE.toast('Koneksi berhasil ✓', 'success'); } catch (e) { SAE.toast('Gagal: ' + e.message, 'error'); SAE.setApiUrl(old); }
+    });
+    function renderMode() {
+      const online = SAE.isOnline();
+      $('modeBanner').textContent = 'Status: ' + SAE.modeLabel() + (online ? '' : ' — data tersimpan di perangkat ini saja.');
+      $('modeBanner').className = 'banner mt ' + (online ? 'info' : 'warn');
+    }
+
+    /* --------------------------- create event ------------------------- */
+    $('pdfFile').addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0]; pdfFileSelected = file || null;
+      if (!file) return;
+      if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { $('pdfStatus').className = 'banner warn'; $('pdfStatus').textContent = '⚠️ Berkas harus PDF.'; pdfFileSelected = null; e.target.value = ''; return; }
+      $('pdfStatus').className = 'banner info'; $('pdfStatus').textContent = '⏳ Membaca isi PDF “' + file.name + '”…';
+      try {
+        const f = SAE.parseLetterFields(await SAE.extractPdfText(file)); const form = $('eventForm'); const filled = [];
+        [['nomorSurat','Nomor'],['nama','Nama'],['tanggal','Tanggal'],['waktu','Waktu'],['lokasi','Lokasi']].forEach(([k,l]) => { if (f[k]) { form.elements[k].value = f[k]; filled.push(l); } });
+        if (filled.length) { $('pdfStatus').className = 'banner info'; $('pdfStatus').innerHTML = '✅ Terisi otomatis: <b>' + filled.join(', ') + '</b>. Periksa &amp; sesuaikan bila perlu.'; }
+        else { $('pdfStatus').className = 'banner warn'; $('pdfStatus').textContent = '⚠️ PDF terbaca tapi format tidak dikenali. Isi manual.'; }
+      } catch (err) { $('pdfStatus').className = 'banner warn'; $('pdfStatus').textContent = '⚠️ Tidak dapat membaca teks PDF. PDF tetap tersimpan; isi manual.'; }
+    });
+    $('gpsReq').addEventListener('change', (e) => $('gpsFields').classList.toggle('hide', !e.target.checked));
+    $('useLoc').addEventListener('click', async () => { try { const g = await SAE.getPosition(); $('latIn').value = g.lat.toFixed(6); $('lngIn').value = g.lng.toFixed(6); SAE.toast('Lokasi terisi (±' + Math.round(g.acc) + ' m).', 'success'); } catch (e) { SAE.toast(e.message, 'error'); } });
+    $('eventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries()); delete data.pdfFile; data.gpsRequired = $('gpsReq').checked;
+      if (!pdfFileSelected) return SAE.toast('PDF undangan wajib diunggah.', 'error');
+      if (!data.nama.trim()) return SAE.toast('Nama event wajib diisi.', 'error');
+      data.pdfName = pdfFileSelected.name;
+      const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Menyimpan…';
+      try {
+        const ev = await SAE.createEvent(data); await SAE.savePdfBlob(ev.id, pdfFileSelected);
+        SAE.toast('Event dibuat ✓', 'success'); e.target.reset(); pdfFileSelected = null; $('gpsFields').classList.add('hide');
+        $('pdfStatus').className = 'banner info'; $('pdfStatus').textContent = '📄 Unggah PDF undangan — field terisi otomatis.';
+        SAE.setActiveEventId(ev.id); await init(); show('dashboard');
+      } catch (err) { SAE.toast(err.message, 'error'); } finally { btn.disabled = false; btn.textContent = '＋ Buat Event'; }
+    });
+
+    /* ------------------------------ init ------------------------------ */
+    init();
+    async function init() {
+      try { events = await SAE.listEvents(); } catch (e) { events = []; SAE.toast('Gagal memuat event: ' + e.message, 'error'); }
+      renderEventList();
+      loadDashboard();
+    }
+
+    function fillSelect(sel) {
+      if (!events.length) { sel.innerHTML = '<option value="">— belum ada event —</option>'; return; }
+      const active = SAE.getActiveEventId() || events[0].id;
+      sel.innerHTML = events.map((e) => `<option value="${e.id}" ${e.id === active ? 'selected' : ''}>${SAE.esc(e.nama)} — ${SAE.esc(e.tanggal || '')}</option>`).join('');
+    }
+
+    /* --------------------------- DASHBOARD ---------------------------- */
+    async function loadDashboard() {
+      let all = [];
+      for (const e of events) { try { const ps = await SAE.listParticipants(e.id); ps.forEach((p) => { p._ev = e; }); all = all.concat(ps); } catch (x) {} }
+      const today = new Date();
+      const sameDay = (ts) => { if (!ts) return false; const d = new Date(ts); return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate(); };
+      const hadir = all.filter((p) => p.checkIn);
+      const hadirToday = all.filter((p) => sameDay(p.checkIn));
+      const konf = all.filter((p) => p.bersedia === 'Ya').length;
+      $('sEvent').textContent = events.length;
+      $('sPeserta').textContent = all.length;
+      $('sHadir').textContent = hadirToday.length;
+      $('sHadirPct').textContent = konf ? (Math.round(hadir.length / konf * 100) + '% dari konfirmasi') : '—';
+      $('sCheckin').textContent = hadirToday.length;
+      const lastIn = hadir.map((p) => new Date(p.checkIn)).sort((a, b) => b - a)[0];
+      $('sCheckinLast').textContent = lastIn ? ('Terakhir ' + SAE.fmtTime(lastIn) + ' WIB') : '—';
+
+      // line: 7 hari terakhir
+      const labels = [], data7 = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today); d.setDate(today.getDate() - i);
+        labels.push(d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
+        data7.push(all.filter((p) => { if (!p.checkIn) return false; const c = new Date(p.checkIn); return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth() && c.getDate() === d.getDate(); }).length);
+      }
+      // donut: status
+      const dHadir = hadir.length;
+      const dBelum = all.filter((p) => p.bersedia === 'Ya' && !p.checkIn).length;
+      const dTidak = all.filter((p) => p.bersedia === 'Tidak').length;
+      const dSelesai = all.filter((p) => p.checkOut).length;
+      await ensureChart();
+      drawLine(labels, data7);
+      drawDonut([
+        { nm: 'Hadir', vl: dHadir, c: '#2563eb' },
+        { nm: 'Selesai (check-out)', vl: dSelesai, c: '#16a34a' },
+        { nm: 'Belum hadir', vl: dBelum, c: '#f59e0b' },
+        { nm: 'Tidak hadir', vl: dTidak, c: '#ef4444' }
+      ]);
+
+      // event terbaru
+      const evSorted = [...events].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5);
+      $('recentEvents').innerHTML = evSorted.length ? evSorted.map((e) => {
+        const ps = all.filter((p) => p._ev && p._ev.id === e.id);
+        const k = ps.filter((p) => p.bersedia === 'Ya').length; const h = ps.filter((p) => p.checkIn).length;
+        const pct = k ? Math.round(h / k * 100) : 0;
+        return `<div class="event-item"><div class="ico">${iconFor(e.jenis)}</div><div class="meta"><div class="t">${SAE.esc(e.nama)}</div><div class="d">${SAE.esc(e.tanggal || '')} ${e.lokasi ? '· ' + SAE.esc(e.lokasi) : ''}</div></div><div style="text-align:right;min-width:96px"><div class="bar"><span style="width:${pct}%"></span></div><div class="muted" style="font-size:.74rem;margin-top:3px">${pct}% hadir</div></div></div>`;
+      }).join('') : '<div class="empty"><div class="ico">🗓️</div><p>Belum ada event. Buat di menu <b>Event</b>.</p></div>';
+
+      // aktivitas terbaru
+      const acts = [];
+      all.forEach((p) => {
+        if (p.checkOut) acts.push({ t: new Date(p.checkOut).getTime(), av: 'a', i: '🏁', t1: 'Check-out: ' + p.nama, t2: (p._ev ? p._ev.nama + ' · ' : '') + SAE.fmtTime(p.checkOut) + ' WIB' });
+        if (p.checkIn) acts.push({ t: new Date(p.checkIn).getTime(), av: 'g', i: '✅', t1: 'Check-in: ' + p.nama, t2: (p._ev ? p._ev.nama + ' · ' : '') + SAE.fmtTime(p.checkIn) + ' WIB' });
+        if (p.createdAt) acts.push({ t: p.createdAt, av: 'b', i: '🧑', t1: 'Peserta baru: ' + p.nama, t2: (p._ev ? p._ev.nama + ' · ' : '') + SAE.fmtTime(p.createdAt) + ' WIB' });
+      });
+      acts.sort((a, b) => b.t - a.t);
+      $('recentActivity').innerHTML = acts.length ? acts.slice(0, 7).map((a) => `<div class="it"><div class="av ${a.av}">${a.i}</div><div class="tx"><div class="t1">${SAE.esc(a.t1)}</div><div class="t2">${SAE.esc(a.t2)}</div></div></div>`).join('') : '<div class="empty"><div class="ico">🕓</div><p>Belum ada aktivitas.</p></div>';
+    }
+
+    function drawLine(labels, data) {
+      const ctx = $('lineChart'); if (lineChart) lineChart.destroy();
+      lineChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ data, label: 'Check-in', borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.12)', fill: true, tension: .38, pointBackgroundColor: '#2563eb', pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef2f7' } }, x: { grid: { display: false } } } } });
+    }
+    function drawDonut(items) {
+      const ctx = $('donutChart'); if (donutChart) donutChart.destroy();
+      const total = items.reduce((s, i) => s + i.vl, 0);
+      donutChart = new Chart(ctx, { type: 'doughnut', data: { labels: items.map((i) => i.nm), datasets: [{ data: items.map((i) => i.vl), backgroundColor: items.map((i) => i.c), borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '66%', plugins: { legend: { display: false } } } });
+      $('donutLegend').innerHTML = items.map((i) => `<div class="li"><span class="dot" style="background:${i.c}"></span><span class="nm">${i.nm}</span><span class="vl">${i.vl} (${total ? Math.round(i.vl / total * 100) : 0}%)</span></div>`).join('');
+    }
+    function ensureChart() { return window.Chart ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js'; s.onload = res; s.onerror = () => rej(new Error('chart')); document.head.appendChild(s); }); }
+
+    /* ---------------------------- EVENT list -------------------------- */
+    function renderEventList() {
+      $('eventList').innerHTML = events.length ? events.map((e) => `<div class="event-item"><div class="ico">${iconFor(e.jenis)}</div><div class="meta"><div class="t">${SAE.esc(e.nama)}</div><div class="d">${SAE.esc(e.tanggal || '')} ${e.lokasi ? '· ' + SAE.esc(e.lokasi) : ''}</div></div><button class="btn ghost sm" data-open="${SAE.esc(e.id)}">Buka</button></div>`).join('') : '<div class="empty"><div class="ico">🗓️</div><p>Belum ada event.</p></div>';
+      $('eventList').querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => openEvent(b.dataset.open)));
+    }
+    async function openEvent(id) {
+      current = events.find((e) => e.id === id); if (!current) return; SAE.setActiveEventId(id);
+      const rsvpUrl = location.origin + location.pathname.replace(/[^/]+$/, '') + 'index.html?rsvp=' + encodeURIComponent(id);
+      $('eventInfoCard').classList.remove('hide');
+      $('eventInfo').innerHTML = `<h2 style="margin:0 0 6px">${SAE.esc(current.nama)}</h2>
+        <div class="kv"><span class="k">No. Surat</span><span class="v">${SAE.esc(current.nomorSurat || '-')}</span></div>
+        <div class="kv"><span class="k">Tanggal</span><span class="v">${SAE.esc(current.tanggal || '-')} ${SAE.esc(current.waktu || '')}</span></div>
+        <div class="kv"><span class="k">Lokasi</span><span class="v">${SAE.esc(current.lokasi || '-')}</span></div>
+        <div class="kv"><span class="k">Surat (PDF)</span><span class="v">${SAE.esc(current.pdfName || (current.pdfUrl ? 'tautan' : '-'))}</span></div>
+        <div class="kv"><span class="k">Validasi GPS</span><span class="v">${current.gpsRequired ? 'Aktif · ' + (current.radius || 100) + ' m' : 'Nonaktif'}</span></div>
+        <div class="btn-row mt">
+          <button class="btn sm" id="qrRsvp">🔳 QR Undangan / RSVP</button>
+          <a class="btn ghost sm" href="${rsvpUrl}" target="_blank" rel="noopener">🔗 Link RSVP</a>
+          <button class="btn ghost sm" id="viewPdf">📄 Lihat Surat</button>
+          <button class="btn danger sm" id="delEvent">🗑️ Hapus</button>
+        </div>`;
+      $('qrRsvp').addEventListener('click', () => showRsvpQr(current, rsvpUrl));
+      $('viewPdf').addEventListener('click', async () => { const u = await SAE.pdfViewUrl(current); u ? window.open(u, '_blank', 'noopener') : SAE.toast('Surat tidak tersedia di perangkat ini.', 'error'); });
+      $('delEvent').addEventListener('click', async () => { if (!confirm('Hapus event "' + current.nama + '" beserta data pesertanya?')) return; try { await SAE.deleteEvent(current.id); await SAE.deletePdfBlob(current.id); await SAE.deletePhotos(current.id); SAE.toast('Event dihapus.', 'success'); $('eventInfoCard').classList.add('hide'); await init(); } catch (e) { SAE.toast(e.message, 'error'); } });
+      $('eventInfoCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /* ---------------------------- PESERTA ----------------------------- */
+    $('selPeserta').addEventListener('change', () => loadPeserta($('selPeserta').value));
+    $('refreshBtn').addEventListener('click', () => loadPeserta($('selPeserta').value));
+    async function loadPeserta(id) {
+      if (!id) { $('partTable').innerHTML = '<div class="empty"><div class="ico">👥</div><p>Belum ada event.</p></div>'; ['pKonf','pHadir','pBelum','pTidak'].forEach((x) => $(x).textContent = '0'); return; }
+      current = events.find((e) => e.id === id); SAE.setActiveEventId(id);
+      try { parts = await SAE.listParticipants(id); const s = await SAE.stats(id); $('pKonf').textContent = s.konfirmasi; $('pHadir').textContent = s.hadir; $('pBelum').textContent = Math.max(0, s.belumHadir); $('pTidak').textContent = s.tidakBersedia; } catch (e) { parts = []; }
+      renderPartTable();
+    }
+    function renderPartTable() {
+      if (!parts.length) { $('partTable').innerHTML = '<div class="empty"><div class="ico">👥</div><p>Belum ada peserta yang konfirmasi.</p></div>'; return; }
+      $('partTable').innerHTML = `<table><thead><tr><th>ID</th><th>Nama</th><th>Instansi</th><th>Status</th><th>In</th><th>Out</th><th>Durasi</th><th></th></tr></thead><tbody>${parts.map((p) => `<tr><td class="mono">${SAE.esc(p.id)}</td><td>${SAE.esc(p.nama)}</td><td>${SAE.esc(p.instansi || '')}</td><td>${statusChip(p)}</td><td>${SAE.fmtTime(p.checkIn) || '—'}</td><td>${SAE.fmtTime(p.checkOut) || '—'}</td><td>${SAE.durationStr(p.checkIn, p.checkOut) || '—'}</td><td><button class="btn ghost sm" data-qr="${SAE.esc(p.id)}">QR</button></td></tr>`).join('')}</tbody></table>`;
+      $('partTable').querySelectorAll('[data-qr]').forEach((b) => b.addEventListener('click', () => { const p = parts.find((x) => x.id === b.dataset.qr); if (p) showPartQr(p); }));
+    }
+    function statusChip(p) { if (p.bersedia === 'Tidak') return '<span class="chip red">Tidak hadir</span>'; if (p.checkOut) return '<span class="chip green">Selesai</span>'; if (p.checkIn) return '<span class="chip green">Hadir</span>'; return '<span class="chip amber">Belum hadir</span>'; }
+    $('exCsv').addEventListener('click', () => { if (!parts.length) return SAE.toast('Belum ada data.', 'error'); SAE.exportCsv(current, parts); });
+    $('exXlsx').addEventListener('click', async () => { if (!parts.length) return SAE.toast('Belum ada data.', 'error'); try { await SAE.exportXlsx(current, parts); } catch (e) { SAE.toast('Gagal: ' + e.message, 'error'); } });
+    $('exPdf').addEventListener('click', () => window.print());
+
+    /* ---------------------------- LAPORAN ----------------------------- */
+    $('selLaporan').addEventListener('change', () => loadLaporan($('selLaporan').value));
+    async function loadLaporan(id) {
+      if (!id) return; current = events.find((e) => e.id === id); SAE.setActiveEventId(id);
+      try { parts = await SAE.listParticipants(id); } catch (e) { parts = []; }
+      $('laporan').value = current.laporan || ''; $('materiUrl').value = current.materiUrl || ''; $('notulensiUrl').value = current.notulensiUrl || '';
+      await renderPhotos();
+    }
+    $('saveLaporan').addEventListener('click', async () => {
+      if (!current) return; const patch = { laporan: $('laporan').value.trim(), materiUrl: $('materiUrl').value.trim(), notulensiUrl: $('notulensiUrl').value.trim() };
+      try { const ev = await SAE.updateEvent(current.id, patch); Object.assign(current, ev || patch); const i = events.findIndex((x) => x.id === current.id); if (i >= 0) Object.assign(events[i], patch); SAE.toast('Tersimpan ✓', 'success'); } catch (e) { SAE.toast(e.message, 'error'); }
+    });
+    $('shareWa').addEventListener('click', () => { if (!current) return; if (!current.materiUrl && !current.notulensiUrl && !current.laporan) return SAE.toast('Isi & simpan laporan/link dulu.', 'error'); window.open(SAE.shareWaLink(current), '_blank', 'noopener'); });
+    $('copyShare').addEventListener('click', async () => { if (!current) return; try { await navigator.clipboard.writeText(SAE.shareText(current)); SAE.toast('Disalin ✓', 'success'); } catch (e) { SAE.toast('Gagal menyalin.', 'error'); } });
+    $('photoInput').addEventListener('change', async (e) => { const files = [...(e.target.files || [])]; if (!files.length || !current) return; SAE.toast('Memproses ' + files.length + ' foto…', 'info'); try { await SAE.addPhotos(current.id, files); e.target.value = ''; await renderPhotos(); SAE.toast('Foto ditambahkan ✓', 'success'); } catch (err) { SAE.toast('Gagal: ' + err.message, 'error'); } });
+    async function renderPhotos() {
+      const grid = $('photoGrid'); const photos = current ? await SAE.getPhotos(current.id) : [];
+      if (!photos.length) { grid.innerHTML = '<div class="muted" style="grid-column:1/-1;font-size:.85rem">Belum ada foto.</div>'; return; }
+      grid.innerHTML = photos.map((ph, i) => `<div style="position:relative"><img src="${ph.dataUrl}" style="width:100%;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line)" /><button class="btn danger sm" data-del="${i}" style="position:absolute;top:4px;right:4px;padding:2px 7px;border-radius:6px">✕</button></div>`).join('');
+      grid.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => { await SAE.removePhoto(current.id, +b.dataset.del); await renderPhotos(); }));
+    }
+    $('dlLpj').addEventListener('click', async () => { if (!current) return SAE.toast('Pilih event dulu.', 'error'); try { await SAE.downloadLpj(current, parts); SAE.toast('LPJ diunduh ✓', 'success'); } catch (e) { SAE.toast('Gagal: ' + e.message, 'error'); } });
+    $('printLpj').addEventListener('click', async () => { if (!current) return; try { await SAE.printLpj(current, parts); } catch (e) { SAE.toast(e.message, 'error'); } });
+
+    /* ----------------------------- modal QR --------------------------- */
+    const modal = $('modal'), modalBody = $('modalBody');
+    $('modalClose').addEventListener('click', () => modal.classList.add('hide'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hide'); });
+    async function showRsvpQr(ev, url) {
+      modalBody.innerHTML = `<div class="center"><span class="chip">QR UNDANGAN / RSVP</span><div class="qrbox mt" id="mqr" style="border:none"></div><div style="font-weight:800;margin-top:10px">${SAE.esc(ev.nama)}</div><p class="hint">Tempel di surat undangan. Peserta scan → isi konfirmasi kehadiran.</p><button class="btn green sm" id="mdl">⬇️ Unduh QR</button></div>`;
+      modal.classList.remove('hide'); await SAEQR.render($('mqr'), url, 240); $('mdl').addEventListener('click', () => dlQr($('mqr'), 'qr-rsvp-' + ev.id));
+    }
+    async function showPartQr(p) {
+      modalBody.innerHTML = `<div class="center"><span class="chip green">QR PESERTA</span><div class="qrbox mt" id="mqr" style="border:none"></div><div style="font-weight:800;margin-top:8px">${SAE.esc(p.nama)}</div><div class="mono muted">${SAE.esc(p.id)}</div><div class="btn-row mt" style="justify-content:center"><button class="btn green sm" id="mdl">⬇️ Unduh</button>${p.wa ? '<a class="btn sm" id="mwa">📲 WA</a>' : ''}${p.email ? '<a class="btn ghost sm" id="mmail">✉️ Email</a>' : ''}</div></div>`;
+      modal.classList.remove('hide'); await SAEQR.render($('mqr'), SAE.qrPayload(p), 230); $('mdl').addEventListener('click', () => dlQr($('mqr'), 'qr-' + p.id));
+      const wa = $('mwa'); if (wa) wa.href = SAE.waLink(p, current); const mail = $('mmail'); if (mail) mail.href = SAE.mailLink(p, current);
+    }
+    function dlQr(el, name) { const a = document.createElement('a'); a.href = SAEQR.toDataUrl(el); a.download = name + '.png'; document.body.appendChild(a); a.click(); a.remove(); }
+
+    function iconFor(j) { return ({ Rapat: '📊', Rakor: '📊', Bimtek: '🎓', Sosialisasi: '📣', FGD: '💬', Workshop: '🛠️', Pelatihan: '🎓' })[j] || '🗓️'; }
+  })();
+  </script>
+</body>
+</html>

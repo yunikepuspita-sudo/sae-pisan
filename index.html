@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SAE PISAN — Konfirmasi Kehadiran</title>
+  <meta name="description" content="SAE PISAN — Smart Attendance Event. Konfirmasi kehadiran & QR peserta." />
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="appbar">
+    <img src="./icons/icon.svg" alt="SAE PISAN" />
+    <div>
+      <div class="t">SAE PISAN</div>
+      <div class="s">Smart Attendance Event</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="link" href="./admin.html">Panitia</a>
+  </header>
+
+  <main class="wrap" id="app" style="padding:16px 16px 40px"><!-- diisi oleh skrip --></main>
+
+  <script src="./app.js"></script>
+  <script src="./qr.js"></script>
+  <script>
+  (async function () {
+    SAE.registerSW();
+    const app = document.getElementById('app');
+    const ticket = SAE.param('ticket');
+    const rsvpId = SAE.param('rsvp') || SAE.param('id');
+
+    if (ticket) return renderTicket(ticket);
+    if (rsvpId) return renderRsvp(rsvpId);
+    return renderLanding();
+
+    /* --------------------------- LANDING --------------------------- */
+    async function renderLanding() {
+      let events = [];
+      try { events = await SAE.listEvents(); } catch (e) { /* offline */ }
+      const list = events.length
+        ? events.map((e) => `
+            <a class="event-item" href="?rsvp=${encodeURIComponent(e.id)}" style="text-decoration:none;color:inherit">
+              <div class="ico">${iconFor(e.jenis)}</div>
+              <div class="meta">
+                <div class="t">${SAE.esc(e.nama)}</div>
+                <div class="d">${SAE.esc(e.tanggal || '')} ${e.lokasi ? '· ' + SAE.esc(e.lokasi) : ''}</div>
+              </div>
+              <span class="chip">RSVP →</span>
+            </a>`).join('')
+        : `<div class="empty"><div class="ico">🗓️</div><p>Belum ada kegiatan terbuka.<br/>Panitia dapat membuat kegiatan di menu Panitia.</p></div>`;
+
+      app.innerHTML = `
+        <div class="card">
+          <h2>Selamat datang 👋</h2>
+          <p class="hint">Pilih kegiatan untuk mengonfirmasi kehadiran (RSVP). Setelah konfirmasi, Anda menerima QR untuk check-in di lokasi.</p>
+          <span class="mode-pill" style="color:var(--teal-700);background:var(--teal-50)">Mode: ${SAE.modeLabel()}</span>
+        </div>
+        <div class="section-title">Kegiatan</div>
+        <div class="card">${list}</div>
+        <div class="btn-row">
+          <a class="btn ghost block" href="./checkin.html">📷 Saya Panitia — Buka Scanner</a>
+        </div>`;
+    }
+
+    /* ----------------------------- RSVP ---------------------------- */
+    async function renderRsvp(eventId) {
+      let ev = null;
+      try { ev = await SAE.getEvent(eventId); } catch (e) { /* ignore */ }
+      if (!ev) {
+        app.innerHTML = errorCard('Kegiatan tidak ditemukan',
+          'Tautan undangan mungkin keliru atau kegiatan sudah dihapus.');
+        return;
+      }
+      app.innerHTML = `
+        <div class="card">
+          <span class="chip">${iconFor(ev.jenis)} ${SAE.esc(ev.jenis || 'Kegiatan')}</span>
+          <h2 style="margin-top:10px">${SAE.esc(ev.nama)}</h2>
+          <div class="kv"><span class="k">No. Surat</span><span class="v">${SAE.esc(ev.nomorSurat || '-')}</span></div>
+          <div class="kv"><span class="k">Tanggal</span><span class="v">${SAE.esc(ev.tanggal || '-')} ${SAE.esc(ev.waktu || '')}</span></div>
+          <div class="kv"><span class="k">Lokasi</span><span class="v">${SAE.esc(ev.lokasi || '-')}</span></div>
+          <div class="mt"><button class="btn ghost sm" id="viewPdf">📄 Lihat Surat Undangan</button></div>
+        </div>
+        <div class="card">
+          <h2>Konfirmasi Kehadiran</h2>
+          <p class="hint">Isi data berikut. Wajib diisi bertanda <span class="req">*</span>.</p>
+          <form id="rsvpForm">
+            <div class="field"><label>Nama Lengkap <span class="req">*</span></label><input name="nama" required autocomplete="name" /></div>
+            <div class="row">
+              <div class="field"><label>NIP / NIK</label><input name="nipNik" inputmode="numeric" autocomplete="off" /></div>
+              <div class="field"><label>Jabatan</label><input name="jabatan" /></div>
+            </div>
+            <div class="field"><label>Instansi <span class="req">*</span></label><input name="instansi" required /></div>
+            <div class="row">
+              <div class="field"><label>Nomor WhatsApp <span class="req">*</span></label><input name="wa" inputmode="tel" placeholder="0812xxxxxxxx" required /></div>
+              <div class="field"><label>Email</label><input name="email" type="email" inputmode="email" placeholder="nama@email.com" /></div>
+            </div>
+            <div class="field">
+              <label>Bersedia Hadir? <span class="req">*</span></label>
+              <select name="bersedia"><option value="Ya">✅ Ya, saya hadir</option><option value="Tidak">❌ Tidak dapat hadir</option></select>
+            </div>
+            <button class="btn block lg" type="submit">Kirim Konfirmasi</button>
+          </form>
+        </div>`;
+
+      // Tombol lihat surat: pakai link eksternal atau berkas lokal (IndexedDB).
+      (async () => {
+        const btn = document.getElementById('viewPdf');
+        if (!btn) return;
+        const url = await SAE.pdfViewUrl(ev);
+        if (!url) { btn.parentElement.remove(); return; }
+        btn.addEventListener('click', () => window.open(url, '_blank', 'noopener'));
+      })();
+
+      document.getElementById('rsvpForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type=submit]');
+        const data = Object.fromEntries(new FormData(e.target).entries());
+        if (!data.nama.trim() || !data.instansi.trim() || !data.wa.trim()) {
+          return SAE.toast('Lengkapi data wajib.', 'error');
+        }
+        btn.disabled = true; btn.textContent = 'Mengirim…';
+        try {
+          const part = await SAE.rsvp(eventId, data);
+          if (data.bersedia === 'Tidak') {
+            app.innerHTML = `<div class="card center">
+              <div style="font-size:46px">🙏</div>
+              <h2>Terima kasih</h2>
+              <p class="hint">Konfirmasi <b>tidak hadir</b> Anda sudah tercatat.</p>
+              <a class="btn ghost" href="./index.html">Kembali</a></div>`;
+            return;
+          }
+          // tampilkan tiket QR + opsi kirim WA/email
+          location.replace('?ticket=' + encodeURIComponent(part.id) + '&new=1');
+        } catch (err) {
+          SAE.toast(err.message || 'Gagal mengirim.', 'error');
+          btn.disabled = false; btn.textContent = 'Kirim Konfirmasi';
+        }
+      });
+    }
+
+    /* ---------------------------- TICKET --------------------------- */
+    async function renderTicket(partId) {
+      let part = null, ev = null;
+      try {
+        part = await SAE.getParticipant(partId);
+        if (part) ev = await SAE.getEvent(part.eventId);
+      } catch (e) { /* ignore */ }
+      if (!part) {
+        app.innerHTML = errorCard('Tiket tidak ditemukan', 'Pastikan tautan/QR yang dibuka benar.');
+        return;
+      }
+      const isNew = SAE.param('new');
+      app.innerHTML = `
+        ${isNew ? '<div class="banner info">✅ Konfirmasi berhasil! Simpan QR di bawah dan tunjukkan saat check-in.</div>' : ''}
+        <div class="card ticket">
+          <span class="chip green">QR PESERTA — VALID</span>
+          <div class="qrbox mt" id="qr" style="border:none;background:transparent"></div>
+          <div class="name">${SAE.esc(part.nama)}</div>
+          <div class="id">${SAE.esc(part.id)}</div>
+          ${ev ? `<div class="muted" style="margin-top:8px">${SAE.esc(ev.nama)}<br/>${SAE.esc(ev.tanggal || '')} · ${SAE.esc(ev.lokasi || '')}</div>` : ''}
+        </div>
+        <div class="card">
+          <div class="kv"><span class="k">Instansi</span><span class="v">${SAE.esc(part.instansi || '-')}</span></div>
+          <div class="kv"><span class="k">Status</span><span class="v">${part.checkIn ? (part.checkOut ? 'Selesai (check-out)' : 'Sudah check-in') : 'Belum check-in'}</span></div>
+          <div class="btn-row mt">
+            <button class="btn green sm" id="dl">⬇️ Unduh QR</button>
+            ${part.wa ? `<a class="btn sm" id="wa">📲 Kirim via WhatsApp</a>` : ''}
+            ${part.email ? `<a class="btn ghost sm" id="mail">✉️ Kirim via Email</a>` : ''}
+          </div>
+          <p class="hint mt">Tip: tambahkan halaman ini ke layar utama / screenshot QR agar mudah ditunjukkan saat check-in.</p>
+        </div>
+        ${ev && (ev.materiUrl || ev.notulensiUrl || ev.laporan) ? `
+        <div class="card">
+          <h2 style="margin:0 0 8px">📚 Materi &amp; Notulensi</h2>
+          ${ev.laporan ? `<p class="muted" style="font-size:.9rem;white-space:pre-line">${SAE.esc(ev.laporan)}</p>` : ''}
+          <div class="btn-row">
+            ${ev.materiUrl ? `<a class="btn sm" href="${SAE.esc(ev.materiUrl)}" target="_blank" rel="noopener">📎 Materi Kegiatan</a>` : ''}
+            ${ev.notulensiUrl ? `<a class="btn ghost sm" href="${SAE.esc(ev.notulensiUrl)}" target="_blank" rel="noopener">📝 Notulensi</a>` : ''}
+          </div>
+        </div>` : ''}`;
+
+      const qrEl = document.getElementById('qr');
+      await SAEQR.render(qrEl, SAE.qrPayload(part), 230);
+      document.getElementById('dl').addEventListener('click', () => {
+        const url = SAEQR.toDataUrl(qrEl);
+        const a = document.createElement('a'); a.href = url; a.download = 'qr-' + part.id + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+      const wa = document.getElementById('wa'); if (wa) wa.href = SAE.waLink(part, ev);
+      const mail = document.getElementById('mail'); if (mail) mail.href = SAE.mailLink(part, ev);
+    }
+
+    /* ---------------------------- helpers -------------------------- */
+    function iconFor(jenis) {
+      const m = { Rapat: '📊', Rakor: '📊', Bimtek: '🎓', Sosialisasi: '📣', FGD: '💬', Workshop: '🛠️', Pelatihan: '🎓' };
+      return m[jenis] || '🗓️';
+    }
+    function errorCard(title, msg) {
+      return `<div class="card center"><div style="font-size:46px">⚠️</div><h2>${SAE.esc(title)}</h2><p class="hint">${SAE.esc(msg)}</p><a class="btn ghost" href="./index.html">Kembali</a></div>`;
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SAE PISAN — Scan Check-in</title>
+  <meta name="theme-color" content="#2563eb" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="appbar">
+    <img src="./icons/icon.svg" alt="SAE PISAN" />
+    <div>
+      <div class="t">Scan Check-in / Check-out</div>
+      <div class="s">SAE PISAN · Panel Panitia</div>
+    </div>
+    <div class="spacer"></div>
+    <a class="link" href="./admin.html">Dashboard</a>
+  </header>
+
+  <main class="wrap" style="padding:16px 16px 40px">
+    <div class="card">
+      <div class="field" style="margin-bottom:8px">
+        <label>Kegiatan aktif</label>
+        <select id="eventSel"></select>
+      </div>
+      <div id="gpsInfo" class="muted" style="font-size:.82rem"></div>
+    </div>
+
+    <div class="card">
+      <div id="reader"></div>
+      <div class="btn-row mt">
+        <button class="btn green block" id="startBtn">▶️ Mulai Scan</button>
+        <button class="btn ghost block hide" id="stopBtn">⏸️ Berhenti</button>
+      </div>
+      <p class="hint center mt">Arahkan kamera ke QR peserta. Scan pertama = <b>check-in</b>, scan berikutnya = <b>check-out</b>.</p>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="section-title">Aktivitas terbaru</div>
+    <div class="card" id="recent"><div class="empty"><div class="ico">🕓</div><p>Belum ada scan.</p></div></div>
+
+    <div class="stat-grid">
+      <div class="stat teal"><div class="num" id="sHadir">0</div><div class="lbl">Check-in</div></div>
+      <div class="stat green"><div class="num" id="sSelesai">0</div><div class="lbl">Check-out</div></div>
+      <div class="stat amber"><div class="num" id="sBelum">0</div><div class="lbl">Belum hadir</div></div>
+      <div class="stat"><div class="num" id="sTotal">0</div><div class="lbl">Konfirmasi</div></div>
+    </div>
+  </main>
+
+  <script src="./app.js"></script>
+  <script src="./qr.js"></script>
+  <script>
+  (function () {
+    SAE.registerSW();
+    const sel = document.getElementById('eventSel');
+    const gpsInfo = document.getElementById('gpsInfo');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resultEl = document.getElementById('result');
+    const recentEl = document.getElementById('recent');
+
+    let events = [];
+    let currentEvent = null;
+    let lastGeo = null;
+    let busy = false;
+    let lastText = '';
+    let lastAt = 0;
+    const recent = [];
+
+    init();
+
+    async function init() {
+      try { events = await SAE.listEvents(); } catch (e) { SAE.toast('Gagal memuat kegiatan (mode offline?).', 'error'); }
+      if (!events.length) {
+        sel.innerHTML = '<option value="">— belum ada kegiatan —</option>';
+        startBtn.disabled = true;
+        gpsInfo.textContent = 'Buat kegiatan dulu di Dashboard Panitia.';
+        return;
+      }
+      const active = SAE.getActiveEventId();
+      sel.innerHTML = events.map((e) =>
+        `<option value="${e.id}" ${e.id === active ? 'selected' : ''}>${SAE.esc(e.nama)} — ${SAE.esc(e.tanggal || '')}</option>`
+      ).join('');
+      await selectEvent(sel.value || events[0].id);
+      sel.addEventListener('change', () => selectEvent(sel.value));
+    }
+
+    async function selectEvent(id) {
+      currentEvent = events.find((e) => e.id === id) || null;
+      SAE.setActiveEventId(id);
+      await refreshStats();
+      if (currentEvent && currentEvent.gpsRequired) {
+        gpsInfo.innerHTML = `📍 GPS wajib — radius ${currentEvent.radius || 100} m dari lokasi.`;
+        primeGeo();
+      } else {
+        gpsInfo.innerHTML = '📍 Validasi GPS nonaktif untuk kegiatan ini.';
+      }
+    }
+
+    async function primeGeo() {
+      try { lastGeo = await SAE.getPosition(); }
+      catch (e) { gpsInfo.innerHTML = '⚠️ ' + SAE.esc(e.message); }
+    }
+
+    startBtn.addEventListener('click', async () => {
+      try {
+        await SAEQR.startScan('reader', onScan, (err) => {
+          SAE.toast('Tidak dapat mengakses kamera: ' + (err.message || err), 'error');
+        });
+        startBtn.classList.add('hide');
+        stopBtn.classList.remove('hide');
+      } catch (e) { SAE.toast(e.message || 'Gagal memulai kamera', 'error'); }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      await SAEQR.stopScan();
+      stopBtn.classList.add('hide');
+      startBtn.classList.remove('hide');
+    });
+
+    async function onScan(text) {
+      const now = Date.now();
+      // debounce QR yang sama agar tidak terbaca berulang dalam 3 detik
+      if (busy || (text === lastText && now - lastAt < 3000)) return;
+      lastText = text; lastAt = now; busy = true;
+      beep();
+      try {
+        const id = SAE.parseScan(text);
+        const part = await SAE.getParticipant(id);
+        if (!part || part.eventId !== (currentEvent && currentEvent.id)) {
+          showResult('err', 'QR TIDAK VALID', 'Peserta tidak terdaftar pada kegiatan ini.', '');
+          return;
+        }
+        // validasi GPS bila diperlukan
+        if (currentEvent.gpsRequired) {
+          try { lastGeo = await SAE.getPosition(); } catch (e) { /* pakai yg terakhir */ }
+          const g = SAE.validateGeo(currentEvent, lastGeo);
+          if (!g.ok) {
+            showResult('err', 'DI LUAR LOKASI',
+              `Jarak ${g.distance != null ? g.distance + ' m' : '—'} dari lokasi (maks ${currentEvent.radius} m).`, '');
+            return;
+          }
+        }
+        const { participant, action } = await SAE.scan(part.id, lastGeo);
+        if (action === 'checkin') {
+          showResult('ok', 'CHECK-IN BERHASIL', `${participant.nama} · ${participant.instansi || ''}`, SAE.fmtTime(participant.checkIn));
+        } else if (action === 'checkout') {
+          showResult('out', 'CHECK-OUT BERHASIL',
+            `${participant.nama} · durasi ${SAE.durationStr(participant.checkIn, participant.checkOut)}`, SAE.fmtTime(participant.checkOut));
+        } else {
+          showResult('err', 'SUDAH SELESAI', `${participant.nama} sudah check-in & check-out.`, '');
+        }
+        addRecent(participant, action);
+        await refreshStats();
+      } catch (err) {
+        showResult('err', 'GAGAL', err.message || 'Terjadi kesalahan.', '');
+      } finally {
+        setTimeout(() => { busy = false; }, 800);
+      }
+    }
+
+    function showResult(kind, big, sub, time) {
+      resultEl.innerHTML = `<div class="scan-result ${kind}">
+        <div class="big">${kind === 'ok' ? '✅ ' : kind === 'out' ? '🏁 ' : '⛔ '}${SAE.esc(big)}</div>
+        <div class="sub">${SAE.esc(sub)}</div>
+        ${time ? `<div class="time">${SAE.esc(time)} WIB</div>` : ''}
+      </div>`;
+      if (navigator.vibrate) navigator.vibrate(kind === 'err' ? [80, 60, 80] : 60);
+    }
+
+    function addRecent(p, action) {
+      recent.unshift({ nama: p.nama, instansi: p.instansi, action, at: Date.now() });
+      if (recent.length > 8) recent.pop();
+      recentEl.innerHTML = recent.map((r) => `
+        <div class="event-item">
+          <div class="ico">${r.action === 'checkout' ? '🏁' : '✅'}</div>
+          <div class="meta"><div class="t">${SAE.esc(r.nama)}</div><div class="d">${SAE.esc(r.instansi || '')}</div></div>
+          <span class="chip ${r.action === 'checkout' ? 'amber' : 'green'}">${r.action === 'checkout' ? 'Check-out' : 'Check-in'} ${SAE.fmtTime(r.at)}</span>
+        </div>`).join('');
+    }
+
+    async function refreshStats() {
+      if (!currentEvent) return;
+      try {
+        const s = await SAE.stats(currentEvent.id);
+        document.getElementById('sHadir').textContent = s.hadir;
+        document.getElementById('sSelesai').textContent = s.selesai;
+        document.getElementById('sBelum').textContent = Math.max(0, s.belumHadir);
+        document.getElementById('sTotal').textContent = s.konfirmasi;
+      } catch (e) { /* ignore */ }
+    }
+
+    // bip pendek via WebAudio (tanpa aset suara)
+    let audioCtx;
+    function beep() {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.value = 880; g.gain.value = 0.05;
+        o.start(); o.stop(audioCtx.currentTime + 0.08);
+      } catch (e) { /* ignore */ }
+    }
+
+    window.addEventListener('pagehide', () => SAEQR.stopScan());
+  })();
+  </script>
+</body>
+</html>

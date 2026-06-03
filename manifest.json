@@ -1,0 +1,23 @@
+{
+  "name": "SAE PISAN — Smart Attendance Event",
+  "short_name": "SAE PISAN",
+  "description": "Presensi Integratif, Sistematis, Akuntabel, Nirkertas. Kehadiran terdata, integritas terjaga — sae pisan.",
+  "id": "./",
+  "start_url": "./admin.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "lang": "id",
+  "categories": ["productivity", "business", "utilities"],
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Scan Check-in", "short_name": "Scan", "url": "./checkin.html" },
+    { "name": "Dashboard", "short_name": "Dashboard", "url": "./admin.html" }
+  ]
+}
