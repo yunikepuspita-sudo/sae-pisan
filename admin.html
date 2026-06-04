@@ -137,6 +137,7 @@
             <button class="btn green sm" id="exCsv">⬇️ CSV</button>
             <button class="btn green sm" id="exXlsx">⬇️ Excel</button>
             <button class="btn ghost sm" id="exPdf">🖨️ PDF / Cetak</button>
+            <button class="btn sm" id="certAll">🎓 Sertifikat (semua hadir)</button>
             <button class="btn ghost sm" id="refreshBtn">🔄 Muat ulang</button>
           </div>
           <div class="table-wrap" id="partTable"></div>
@@ -392,13 +393,15 @@
     }
     function renderPartTable() {
       if (!parts.length) { $('partTable').innerHTML = '<div class="empty"><div class="ico">👥</div><p>Belum ada peserta yang konfirmasi.</p></div>'; return; }
-      $('partTable').innerHTML = `<table><thead><tr><th>ID</th><th>Nama</th><th>Instansi</th><th>Status</th><th>In</th><th>Out</th><th>Durasi</th><th></th></tr></thead><tbody>${parts.map((p) => `<tr><td class="mono">${SAE.esc(p.id)}</td><td>${SAE.esc(p.nama)}</td><td>${SAE.esc(p.instansi || '')}</td><td>${statusChip(p)}</td><td>${SAE.fmtTime(p.checkIn) || '—'}</td><td>${SAE.fmtTime(p.checkOut) || '—'}</td><td>${SAE.durationStr(p.checkIn, p.checkOut) || '—'}</td><td><button class="btn ghost sm" data-qr="${SAE.esc(p.id)}">QR</button></td></tr>`).join('')}</tbody></table>`;
+      $('partTable').innerHTML = `<table><thead><tr><th>ID</th><th>Nama</th><th>Instansi</th><th>Status</th><th>In</th><th>Out</th><th>Durasi</th><th></th></tr></thead><tbody>${parts.map((p) => `<tr><td class="mono">${SAE.esc(p.id)}</td><td>${SAE.esc(p.nama)}</td><td>${SAE.esc(p.instansi || '')}</td><td>${statusChip(p)}</td><td>${SAE.fmtTime(p.checkIn) || '—'}</td><td>${SAE.fmtTime(p.checkOut) || '—'}</td><td>${SAE.durationStr(p.checkIn, p.checkOut) || '—'}</td><td style="white-space:nowrap"><button class="btn ghost sm" data-qr="${SAE.esc(p.id)}">QR</button> <button class="btn ghost sm" data-cert="${SAE.esc(p.id)}">🎓</button></td></tr>`).join('')}</tbody></table>`;
       $('partTable').querySelectorAll('[data-qr]').forEach((b) => b.addEventListener('click', () => { const p = parts.find((x) => x.id === b.dataset.qr); if (p) showPartQr(p); }));
+      $('partTable').querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { const p = parts.find((x) => x.id === b.dataset.cert); if (p) SAE.downloadCertificate(current, p); }));
     }
     function statusChip(p) { if (p.bersedia === 'Tidak') return '<span class="chip red">Tidak hadir</span>'; if (p.checkOut) return '<span class="chip green">Selesai</span>'; if (p.checkIn) return '<span class="chip green">Hadir</span>'; return '<span class="chip amber">Belum hadir</span>'; }
     $('exCsv').addEventListener('click', () => { if (!parts.length) return SAE.toast('Belum ada data.', 'error'); SAE.exportCsv(current, parts); });
     $('exXlsx').addEventListener('click', async () => { if (!parts.length) return SAE.toast('Belum ada data.', 'error'); try { await SAE.exportXlsx(current, parts); } catch (e) { SAE.toast('Gagal: ' + e.message, 'error'); } });
     $('exPdf').addEventListener('click', () => window.print());
+    $('certAll').addEventListener('click', () => { if (!current) return SAE.toast('Pilih event dulu.', 'error'); SAE.downloadCertificatesBatch(current, parts); });
 
     /* ---------------------------- LAPORAN ----------------------------- */
     $('selLaporan').addEventListener('change', () => loadLaporan($('selLaporan').value));

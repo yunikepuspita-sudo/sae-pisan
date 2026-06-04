@@ -83,18 +83,12 @@ window.SAE = (function () {
   }
 
   /* --------------------------- panggilan backend ------------------------- */
-  // Apps Script: GET untuk baca (query ?action=...), POST text/plain untuk tulis
-  // (text/plain menghindari CORS preflight pada Apps Script Web App).
+  // Semua panggilan via POST text/plain (request "sederhana" — tanpa CORS
+  // preflight). GET ke Apps Script dari browser kerap gagal ("Failed to
+  // fetch") karena redirect ke googleusercontent; POST jauh lebih andal.
+  // doPost meneruskan payload sebagai params, sehingga aksi baca tetap bekerja.
   async function apiGet(action, params) {
-    const url = new URL(getApiUrl());
-    url.searchParams.set('action', action);
-    Object.entries(params || {}).forEach(([k, v]) => {
-      if (v !== undefined && v !== null) url.searchParams.set(k, v);
-    });
-    const res = await fetch(url.toString(), { method: 'GET' });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'Gagal memuat data');
-    return json.data;
+    return apiPost(action, params);
   }
   async function apiPost(action, payload) {
     const res = await fetch(getApiUrl(), {
@@ -731,6 +725,87 @@ ${fotoHtml}
     w.focus(); setTimeout(() => { try { w.print(); } catch (e) {} }, 500);
   }
 
+  /* ---- e-Sertifikat peserta (format Word .doc, A4 landscape) ---- */
+  const CERT_STYLE = `@page { size: A4 landscape; margin: 0; }
+body { font-family: "Georgia","Times New Roman",serif; margin: 0; color: #0f172a; }
+.frame { box-sizing: border-box; width: 1100px; max-width: 100%; margin: 0 auto; padding: 26px; }
+.inner { border: 3px solid #2563eb; outline: 1px solid #22d3ee; outline-offset: 6px; border-radius: 8px; padding: 40px 60px; text-align: center; position: relative; }
+.brand { color: #2563eb; font-weight: bold; letter-spacing: 3px; font-size: 16pt; }
+.brandsub { color: #0ea5b7; font-size: 10pt; letter-spacing: 1px; margin-top: 2px; }
+.title { font-size: 34pt; font-weight: bold; letter-spacing: 6px; margin: 14px 0 2px; color: #1f2d5a; }
+.subtitle { font-size: 12pt; color: #475569; letter-spacing: 2px; }
+.nomor { font-size: 10.5pt; color: #64748b; margin-top: 4px; }
+.given { margin-top: 22px; font-size: 12pt; color: #475569; }
+.name { font-size: 30pt; font-weight: bold; color: #2563eb; margin: 6px 0; border-bottom: 2px solid #cbd5e1; display: inline-block; padding: 0 30px 6px; }
+.meta { font-size: 12pt; color: #334155; }
+.cbody { margin: 18px auto 0; max-width: 760px; font-size: 12.5pt; line-height: 1.6; color: #1f2937; }
+.event { font-weight: bold; color: #0f172a; }
+.sign { margin-top: 30px; width: 100%; }
+.sign td { width: 50%; font-size: 11pt; vertical-align: top; }
+.verify { position: absolute; left: 24px; bottom: 14px; font-size: 8.5pt; color: #94a3b8; }
+.seal { position: absolute; right: 30px; top: 30px; width: 80px; height: 80px; border: 2px dashed #22d3ee; border-radius: 50%; color: #0ea5b7; font-size: 8pt; display: table-cell; vertical-align: middle; text-align: center; }
+.pb { page-break-before: always; }`;
+
+  function certFrame(event, part) {
+    const panitia = getPanitia() || 'Panitia Penyelenggara';
+    const tgl = event.tanggal
+      ? new Date(event.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+      : '-';
+    const today = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const kota = event.lokasi ? esc(event.lokasi.split(',')[0]) : '..................';
+    const nomor = event.nomorSurat ? esc(event.nomorSurat) : esc(part.id);
+    return `<div class="frame"><div class="inner">
+  <div class="brand">SAE PISAN</div>
+  <div class="brandsub">SMART ATTENDANCE EVENT &mdash; ${esc(panitia)}</div>
+  <div class="title">SERTIFIKAT</div>
+  <div class="subtitle">KEHADIRAN / PARTISIPASI</div>
+  <div class="nomor">Nomor: ${nomor}</div>
+  <div class="given">Diberikan kepada:</div>
+  <div class="name">${esc(part.nama)}</div>
+  <div class="meta">${esc(part.jabatan ? part.jabatan + ' — ' : '')}${esc(part.instansi || '')}</div>
+  <div class="cbody">
+    atas partisipasinya sebagai <b>peserta</b> dalam kegiatan<br/>
+    <span class="event">${esc(event.nama)}</span><br/>
+    yang diselenggarakan pada <b>${tgl}${event.waktu ? ' pukul ' + esc(event.waktu) : ''}</b>
+    ${event.lokasi ? 'bertempat di <b>' + esc(event.lokasi) + '</b>' : ''}.
+  </div>
+  <table class="sign"><tr>
+    <td>&nbsp;</td>
+    <td>${kota}, ${today}<br/>${esc(panitia)}<br/><br/><br/><br/><b>(............................)</b><br/>Ketua Panitia</td>
+  </tr></table>
+  <div class="verify">Kode verifikasi: ${esc(part.id)}${part.checkIn ? ' · Check-in: ' + fmtDateTime(part.checkIn) : ''}</div>
+  <div class="seal">e-Sertifikat<br/>SAE&nbsp;PISAN</div>
+</div></div>`;
+  }
+
+  function certDoc(framesHtml, title) {
+    return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"/>
+<title>${esc(title)}</title><style>${CERT_STYLE}</style></head><body>${framesHtml}</body></html>`;
+  }
+  function certificateHtml(event, part) { return certDoc(certFrame(event, part), 'Sertifikat ' + part.nama); }
+
+  function certName(event, part) {
+    const nm = (part.nama || 'peserta').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return 'sertifikat-' + nm + '-' + part.id;
+  }
+  function downloadCertificate(event, part) {
+    download(certName(event, part) + '.doc', '﻿' + certificateHtml(event, part), 'application/msword;charset=utf-8');
+  }
+  // Satu berkas .doc berisi sertifikat semua peserta yang hadir (per halaman).
+  function downloadCertificatesBatch(event, parts) {
+    const hadir = parts.filter((p) => p.checkIn);
+    if (!hadir.length) { toast('Belum ada peserta yang check-in.', 'error'); return; }
+    const frames = hadir.map((p, i) => (i ? '<div class="pb"></div>' : '') + certFrame(event, p)).join('');
+    download('sertifikat-' + slug(event).replace(/^rekap-/, '') + '.doc',
+      '﻿' + certDoc(frames, 'Sertifikat ' + event.nama), 'application/msword;charset=utf-8');
+  }
+  function printCertificate(event, part) {
+    const w = window.open('', '_blank');
+    if (!w) { toast('Popup diblokir. Izinkan popup untuk mencetak.', 'error'); return; }
+    w.document.write(certificateHtml(event, part)); w.document.close();
+    w.focus(); setTimeout(() => { try { w.print(); } catch (e) {} }, 500);
+  }
+
   /* --------------------------- aktif & panitia --------------------------- */
   function getActiveEventId() { return localStorage.getItem(LS.ACTIVE) || ''; }
   function setActiveEventId(id) { localStorage.setItem(LS.ACTIVE, id || ''); }
@@ -804,6 +879,7 @@ ${fotoHtml}
     // dokumentasi, laporan, berbagi & LPJ
     getPhotos, addPhotos, removePhoto, deletePhotos,
     shareText, shareWaLink, downloadLpj, printLpj,
+    downloadCertificate, printCertificate, downloadCertificatesBatch,
     // active / panitia
     getActiveEventId, setActiveEventId, getPanitia, setPanitia,
     // helpers

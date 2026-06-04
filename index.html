@@ -19,7 +19,6 @@
       <div class="s">Smart Attendance Event</div>
     </div>
     <div class="spacer"></div>
-    <a class="link" href="./admin.html">Panitia</a>
   </header>
 
   <main class="wrap" id="app" style="padding:16px 16px 40px"><!-- diisi oleh skrip --></main>
@@ -51,19 +50,15 @@
               </div>
               <span class="chip">RSVP →</span>
             </a>`).join('')
-        : `<div class="empty"><div class="ico">🗓️</div><p>Belum ada kegiatan terbuka.<br/>Panitia dapat membuat kegiatan di menu Panitia.</p></div>`;
+        : `<div class="empty"><div class="ico">🗓️</div><p>Belum ada kegiatan terbuka saat ini.<br/>Silakan pindai QR pada undangan Anda untuk konfirmasi kehadiran.</p></div>`;
 
       app.innerHTML = `
         <div class="card">
           <h2>Selamat datang 👋</h2>
-          <p class="hint">Pilih kegiatan untuk mengonfirmasi kehadiran (RSVP). Setelah konfirmasi, Anda menerima QR untuk check-in di lokasi.</p>
-          <span class="mode-pill" style="color:var(--teal-700);background:var(--teal-50)">Mode: ${SAE.modeLabel()}</span>
+          <p class="hint">Pilih kegiatan untuk mengonfirmasi kehadiran (RSVP). Setelah konfirmasi, Anda menerima QR untuk check-in di lokasi. Jika sudah punya tautan undangan, cukup membukanya.</p>
         </div>
         <div class="section-title">Kegiatan</div>
-        <div class="card">${list}</div>
-        <div class="btn-row">
-          <a class="btn ghost block" href="./checkin.html">📷 Saya Panitia — Buka Scanner</a>
-        </div>`;
+        <div class="card">${list}</div>`;
     }
 
     /* ----------------------------- RSVP ---------------------------- */
@@ -173,6 +168,19 @@
           </div>
           <p class="hint mt">Tip: tambahkan halaman ini ke layar utama / screenshot QR agar mudah ditunjukkan saat check-in.</p>
         </div>
+        ${ev && part.checkIn ? `
+        <div class="card center">
+          <span class="chip green">🎓 e-SERTIFIKAT</span>
+          <p class="hint mt">Anda telah tercatat hadir. Unduh sertifikat kehadiran Anda.</p>
+          <div class="btn-row" style="justify-content:center">
+            <button class="btn sm" id="certDl">⬇️ Unduh Sertifikat</button>
+            <button class="btn ghost sm" id="certPrint">🖨️ Cetak / PDF</button>
+          </div>
+        </div>` : (ev ? `
+        <div class="card center">
+          <span class="chip gray">🎓 e-Sertifikat</span>
+          <p class="hint mt">Sertifikat kehadiran tersedia <b>setelah Anda check-in</b> di lokasi kegiatan.</p>
+        </div>` : '')}
         ${ev && (ev.materiUrl || ev.notulensiUrl || ev.laporan) ? `
         <div class="card">
           <h2 style="margin:0 0 8px">📚 Materi &amp; Notulensi</h2>
@@ -192,6 +200,8 @@
       });
       const wa = document.getElementById('wa'); if (wa) wa.href = SAE.waLink(part, ev);
       const mail = document.getElementById('mail'); if (mail) mail.href = SAE.mailLink(part, ev);
+      const cDl = document.getElementById('certDl'); if (cDl) cDl.addEventListener('click', () => SAE.downloadCertificate(ev, part));
+      const cPr = document.getElementById('certPrint'); if (cPr) cPr.addEventListener('click', () => SAE.printCertificate(ev, part));
     }
 
     /* ---------------------------- helpers -------------------------- */
